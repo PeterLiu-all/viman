@@ -1,0 +1,91 @@
+#!/bin/bash
+
+echo "--Written By P3troL1er--"
+echo "> Welcome to my blog: https://peterliuzhi.top"
+
+cppman -v >> /dev/null 2>>/dev/null
+if [ $? -ne 0 ];then
+    echo "Can't find cppman!" 1>&2
+    python3 -m pip install cppman
+    if [ $? -ne 0 ];then
+        echo "ERROR found when installing cppman!" 1>&2
+        echo "used command to install: python3 -m pip install cppman" 1>&2
+        echo "try to find out that if the command is not available on your system!(check if you have python3 and pip)" 1>&2
+        exit 127
+    fi
+fi
+
+tldr -v >> /dev/null 2>>/dev/null
+if [ $? -ne 0 ];then
+    echo "Can't find tldr!" 1>&2
+    sudo apt install tldr -y
+    if [ $? -ne 0 ];then
+        echo "ERROR found when installing tldr!" 1>&2
+        echo "used command to install: sudo apt install tldr -y" 1>&2
+        echo "try to find out that if the command is not available on your system!(check if you are using debian-based system like Ubuntu)" 1>&2
+        exit 127
+    fi
+fi
+
+
+function help_guide(){
+    echo "USAGE: $0 [OPTIONS] -e MAN_ENTRY"
+    echo "HELP: $0 -h"
+    echo "USE_TLDR: $0 -t -e MAN_ENTRY"
+    echo "BY P3troL1er"
+}
+
+helper=0
+NORMAL_MAN="man"
+use_tldr=0
+entry_name=""
+
+while getopts "hte:" opt; do
+  case $opt in
+    h)
+      helper=1
+      ;;
+    t)
+      NORMAL_MAN="tldr"
+      use_tldr=1
+      ;;
+    e)
+      entry_name=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      help_guide
+      exit 1
+      ;;
+  esac
+done
+
+if [ $helper -eq 1 ]; then
+    help_guide
+    exit 0
+fi
+
+VIMAN_ARG=`mktemp /tmp/viman.temp.XXXXXX`
+RETURN_MSG=`$NORMAL_MAN $entry_name >> $VIMAN_ARG`
+VIMAN_EXITCODE=$?
+if [ -n "$RETURN_MSG" ]; then
+    VIMAN_EXITCODE=16
+fi
+if [ $VIMAN_EXITCODE -eq 0 ]; then
+    if [ $use_tldr -eq 1 ]; then
+        vim $VIMAN_ARG -c ":term ++curwin cat %"
+    else
+        vim $VIMAN_ARG -c "set nonumber"
+    fi
+else 
+    echo "$NORMAL_MAN failed! using cppman..."
+    RETURN_MSG=`cppman "$entry_name"`
+    if [ -n "$RETURN_MSG" ];then
+        echo "Not even in cppman!"
+    fi
+fi
+rm $VIMAN_ARG
+if [ $VIMAN_EXITCODE -ne 0 ];then
+    echo "Coundn't find manual for $entry_name!"
+fi
+exit $VIMAN_EXITCODE
